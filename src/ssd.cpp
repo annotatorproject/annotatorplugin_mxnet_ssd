@@ -17,7 +17,6 @@
 #include <ctype.h>
 #include <iostream>
 #include <memory>
-
 #include <chrono>
 #include <thread>
 
@@ -27,7 +26,7 @@ Annotator::Plugins::SSD::SSD() { widget.setSSD(this); }
 
 SSD::~SSD() {}
 
-QString SSD::getName() { return "Caffe SSD"; }
+QString SSD::getName() { return "mxnet SSD"; }
 
 QWidget *SSD::getWidget() { return &widget; }
 
@@ -57,41 +56,34 @@ std::vector<shared_ptr<Commands::Command>> SSD::getCommands() {
 
   try {
     initDetector();
-    std::vector<std::vector<float>> detections =
-        detector->Detect(this->frameImg);
+    std::vector<float> dets =
+        detector->detect(this->frameImg);
+        //    detector->detect(this->labelmap_file);
 
-    int label;
-    float score;
-    int xmin;
-    int ymin;
-    int xmax;
-    int ymax;
+    for (std::size_t i = 0; i < dets.size(); i += 6) {
+      if (dets[i] < 0) continue;  // not an object
+      int id = static_cast<int>(dets[i]);
+      float score = dets[i + 1];
+      if (score < confidence_threshold) continue;
+      int xmin = static_cast<int>(dets[i + 2] * width);
+      int ymin = static_cast<int>(dets[i + 3] * height);
+      int xmax = static_cast<int>(dets[i + 4] * width);
+      int ymax = static_cast<int>(dets[i + 5] * height);
 
-    for (int i = 0; i < detections.size(); ++i) {
-      const std::vector<float> &d = detections[i];
-      // Detection format: [image_id, label, score, xmin, ymin, xmax, ymax].
-      score = d[2];
-      if (score >= confidence_threshold) {
-        label = static_cast<int>(d[1]);
-        xmin = static_cast<int>(d[3] * frameImg.cols);
-        ymin = static_cast<int>(d[4] * frameImg.rows);
-        xmax = static_cast<int>(d[5] * frameImg.cols);
-        ymax = static_cast<int>(d[6] * frameImg.rows);
-
-        std::shared_ptr<Class> labelClass = getClass(label);
-        if (labelClass) {
-          int objectId = AnnotatorLib::Object::genId();
-          int width = xmax - xmin;
-          int height = ymax - ymin;
-          shared_ptr<Commands::NewAnnotation> nA =
-              std::make_shared<Commands::NewAnnotation>(
-                  objectId, labelClass, project->getSession(), this->frame,
-                  xmin, ymin, width, height, score, false);
-          commands.push_back(nA);
-        }
+      if (id < this->labels.size()) {
+          std::shared_ptr<Class> labelClass = getClass(id);
+          if (labelClass) {
+            int objectId = AnnotatorLib::Object::genId();
+            int width = xmax - xmin;
+            int height = ymax - ymin;
+            shared_ptr<Commands::NewAnnotation> nA =
+                std::make_shared<Commands::NewAnnotation>(
+                    objectId, labelClass, project->getSession(), this->frame,
+                    xmin, ymin, width, height, score, false);
+            commands.push_back(nA);
+          }
       }
     }
-
   } catch (std::exception &e) {
   }
 
@@ -103,8 +95,8 @@ void SSD::setPrototxt(std::string file) {
   modelLoaded = false;
 }
 
-void SSD::setCaffemodel(std::string file) {
-  this->caffemodel_file = file;
+void SSD::setModel(std::string file) {
+  this->model_file = file;
   modelLoaded = false;
 }
 
@@ -124,7 +116,8 @@ void SSD::initDetector() {
   }
   const std::string mean_file = "";
   detector =
-      new Detector(prototxt_file, caffemodel_file, mean_file, "104,117,123");
+          new det::Detector(model_file, this->prototxt_file, epoch, width, height,
+              mean_r, mean_g, mean_b, device_type, device_id);
   labels.clear();
   labels.push_back("background");
   labels.push_back("aeroplane");

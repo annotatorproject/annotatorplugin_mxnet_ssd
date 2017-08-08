@@ -3,7 +3,13 @@
 # External dependencies
 # 
 
-find_package(Caffe)
+execute_process(COMMAND make
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mxnet/amalgamation)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/mxnet/lib/libmxnet_predict.so DESTINATION ${PROJECT_BINARY_DIR})
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
+
+find_package(mxnet REQUIRED)
 
 # Enable automoc
 set(CMAKE_AUTOMOC ON)
@@ -37,7 +43,7 @@ endif()
 # 
 
 file(GLOB sources
-"*.cpp" "*.h" "*.ui" "*.qrc")
+"src/*.cpp" "src/*.h" "src/*.hpp" "src/*.ui" "src/*.qrc")
 
 
 # 
@@ -51,7 +57,6 @@ add_library(${target}
 
 # Create namespaced alias
 add_library(${META_PROJECT_NAME}::${target} ALIAS ${target})
-
 
 # 
 # Project options
@@ -73,7 +78,7 @@ target_include_directories(${target}
     ${DEFAULT_INCLUDE_DIRECTORIES}
     ${CMAKE_CURRENT_BINARY_DIR}
     ${PROJECT_BINARY_DIR}/source/include
-    ${Caffe_INCLUDE_DIRS}
+    ${mxnet_INCLUDE_DIRS}
 )
 
 
@@ -81,10 +86,15 @@ target_include_directories(${target}
 # Libraries
 # 
 
+#if(NOT ${mxnet_LIBRARIES})
+#    set( mxnet_LIBRARIES mxnet_predict)
+#    message(STATUS "mxnet library: " ${mxnet_LIBRARIES} )
+#endif()
+
 target_link_libraries(${target}
     PRIVATE
     ${DEFAULT_LIBRARIES}
-    ${Caffe_LIBRARIES}
+    ${mxnet_LIBRARIES}
     annotator::annotatorplugin
 )
 
@@ -96,7 +106,6 @@ target_link_libraries(${target}
 target_compile_definitions(${target}
     PRIVATE
     ${DEFAULT_COMPILE_DEFINITIONS}
-    ${Caffe_DEFINITIONS}
 )
 
 

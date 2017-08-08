@@ -2,7 +2,7 @@
 #define SSD_H
 
 #include <annotator/plugins/plugin.h>
-#include "detector.h"
+#include "detector.hpp"
 #include "widget.h"
 
 #include <QtCore/QObject>
@@ -40,21 +40,30 @@ class SSD : public Plugin {
   std::vector<shared_ptr<Commands::Command>> getCommands() override;
 
   void setPrototxt(std::string file);
-  void setCaffemodel(std::string file);
+  void setModel(std::string file);
   void setLabelmap(std::string file);
   void setConfidenceThreshold(float threshold);
 
   virtual bool requiresObject() const override { return false; }
 
  protected:
+  int epoch = 1;
+    int width = 300;
+    int height = 300;
+    float mean_r = 123.f;
+    float mean_g = 117.f;
+    float mean_b = 104.f;
+    int device_type = 1;
+      int device_id = 0;
+
   bool modelLoaded = false;
   std::string prototxt_file;
-  std::string caffemodel_file;
+  std::string model_file;
   std::string labelmap_file;
   float confidence_threshold = 0.01;
   std::vector<std::string> labels;
 
-  Detector *detector = nullptr;
+  det::Detector *detector = nullptr;
 
   void initDetector();
   std::shared_ptr<AnnotatorLib::Class> getClass(int label);

@@ -40,7 +40,7 @@
    <item row="3" column="1">
     <widget class="QPushButton" name="prototxtButton">
      <property name="text">
-      <string>prototxt</string>
+      <string>json</string>
      </property>
     </widget>
    </item>
@@ -50,7 +50,7 @@
    <item row="4" column="1">
     <widget class="QPushButton" name="caffemodelButton">
      <property name="text">
-      <string>caffemodel</string>
+      <string>model</string>
      </property>
     </widget>
    </item>
